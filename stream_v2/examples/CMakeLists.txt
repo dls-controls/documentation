@@ -54,6 +54,7 @@ if(NOT "${CMAKE_C_COMPILER_ID}" MATCHES "MSVC")
     add_compile_options(-mf16c -Wall -Wextra)
 endif()
 
+add_compile_options(-fPIC)
 add_library(stream2 STATIC
     stream2.c
     stream2.h

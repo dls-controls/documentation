@@ -1,5 +1,6 @@
 add_subdirectory(compression)
 
+add_compile_options(-fPIC)
 add_library(tinycbor OBJECT
     tinycbor/src/cborencoder.c
     tinycbor/src/cborencoder_close_container_checked.c
