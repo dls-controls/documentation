@@ -19,6 +19,7 @@ enum stream2_result {
 struct stream2_array {
     void* ptr;
     size_t len;
+    char compression[8];
 };
 
 struct stream2_array_float {

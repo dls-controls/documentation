@@ -161,7 +161,8 @@ static enum stream2_result parse_uint64(CborValue* it, uint64_t* value) {
 
 static enum stream2_result parse_dectris_compression(CborValue* it,
                                                      uint8_t** bstr,
-                                                     size_t* bstr_len) {
+                                                     size_t* bstr_len,
+                                                     char* encoding) {
     enum stream2_result r;
 
     CborTag tag;
@@ -189,6 +190,12 @@ static enum stream2_result parse_dectris_compression(CborValue* it,
     if ((r = parse_key(&elt, key)))
         return r;
 
+
+    // Set new stream2_array.compression field
+
+
+    strcpy(encoding, key);
+/*
     CompressionAlgorithm algorithm;
     if (strcmp(key, "bslz4") == 0) {
         algorithm = COMPRESSION_BSLZ4_HDF5;
@@ -197,6 +204,7 @@ static enum stream2_result parse_dectris_compression(CborValue* it,
     } else {
         return STREAM2_ERROR_PARSE;
     }
+*/
 
     uint64_t elem_size;
     if ((r = parse_uint64(&elt, &elem_size)))
@@ -208,11 +216,17 @@ static enum stream2_result parse_dectris_compression(CborValue* it,
     if (!cbor_value_is_byte_string(&elt))
         return STREAM2_ERROR_PARSE;
 
+
+    // Set stream2_array.{ptr,len} to compressed data (bstr{_len}) instead of doing decompression
+
+
+/*
     const uint8_t* encoded;
     size_t encoded_len;
-    if ((r = consume_byte_string_nocopy(&elt, &encoded, &encoded_len, &elt)))
+*/
+    if ((r = consume_byte_string_nocopy(&elt, (const uint8_t**) bstr, bstr_len, &elt)))
         return r;
-
+/*
     *bstr_len = compression_decompress_buffer(
             algorithm, NULL, 0, (const char*)encoded, encoded_len, elem_size);
     if (*bstr_len == COMPRESSION_ERROR)
@@ -226,13 +240,14 @@ static enum stream2_result parse_dectris_compression(CborValue* it,
                                       (const char*)encoded, encoded_len,
                                       elem_size) != *bstr_len)
         return STREAM2_ERROR_DECODE;
-
+*/
     return CBOR_RESULT(cbor_value_leave_container(it, &elt));
 }
 
 static enum stream2_result parse_byte_string(CborValue* it,
                                              uint8_t** bstr,
-                                             size_t* bstr_len) {
+                                             size_t* bstr_len,
+                                             char* encoding) {
     enum stream2_result r;
 
     if (cbor_value_is_tag(it)) {
@@ -241,7 +256,7 @@ static enum stream2_result parse_byte_string(CborValue* it,
             return r;
 
         if (tag == DECTRIS_COMPRESSION) {
-            return parse_dectris_compression(it, bstr, bstr_len);
+            return parse_dectris_compression(it, bstr, bstr_len, encoding);
         } else {
             return STREAM2_ERROR_PARSE;
         }
@@ -313,7 +328,7 @@ static enum stream2_result parse_typed_array(CborValue* it,
     *elem_size = 1 << (f + ll);
 
     size_t len;
-    if ((r = parse_byte_string(it, (uint8_t**)&array->ptr, &len)))
+    if ((r = parse_byte_string(it, (uint8_t**)&array->ptr, &len, array->compression)))
         return r;
 
     if (len % *elem_size != 0)
